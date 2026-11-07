@@ -1,0 +1,17 @@
+{
+ "shutdown_period (1-based, null = stays ON)": {
+  "g1": 36,
+  "g2": 12,
+  "g3": null,
+  "g4": 12,
+  "g5": 24,
+  "g6": 36,
+  "g7": 36,
+  "g8": 12,
+  "g9": 24,
+  "g10": 24,
+  "g11": null,
+  "g12": null
+ },
+ "objective": 105000.0
+}
