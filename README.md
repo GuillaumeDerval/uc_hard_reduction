@@ -137,7 +137,40 @@ The objective is the UC.jl objective: production + startup costs + penalties.
 * `kpart*` are planted "yes" instances. Any algorithm that reaches `Σ_t D_t` is optimal. Any
   imbalance of at least one precision unit costs at least the penalty.
 
-## 5. Reproduce / validate
+* **UnitCommitment.jl 0.3 defaults**: the docs say ramp, startup and shutdown limits default to
+  `+inf`, but the 0.3 reader sets them to **10⁶ MW**. That would constrain the Jooken units
+  (up to ~5·10⁹ MW) and the peaker of the largest knapsack instances. All generators therefore
+  set these four limits explicitly to their own `Pmax`. These limits are never binding, but they
+  make the files mean the same thing in any reader.
+
+## 5. Results (full table: [`INSTANCES.md`](INSTANCES.md))
+
+All 667 files load with UnitCommitment.jl 0.3. Every instance was then solved with
+UC.jl 0.3 (default formulation) + Gurobi 13.0.3, 1 thread, with a 60 s limit.
+**All 667 results are consistent with the best known values.** Every proven optimum matches.
+No incumbent is better than the best known value, and no Gurobi bound exceeds it.
+
+| family | instances | optimum certificate | proven optimal by UC.jl + Gurobi in 60 s |
+|---|---:|---|---:|
+| `kpart` | 87 | planted partition | 5 |
+| `kpart-hp` | 87 | planted partition | 5 |
+| `falkenauer` | 80 | benchmark construction | **0** |
+| `knap-spanner` | 87 | exact DP (max 48 s) | 84 |
+| `knap-mstr` | 87 | exact DP | 77 |
+| `knap-pceil` | 87 | exact DP | 67 |
+| `knap-circle` | 87 | exact DP | 67 |
+| `jooken` | 65 | Gurobi on the knapsack, 120 s (1 proven, 64 with gap ≤ 5·10⁻⁷) | 2 |
+
+The partition-based families, which have real temporal coupling, are by far the hardest for
+the MIP. Gurobi does not solve **any** Falkenauer t60 instance (60 generators, 20 periods) in
+60 s, even though its bound already equals the optimum. Its incumbents are 15–280 % above the
+optimum.
+
+> The Gurobi timings in `INSTANCES.md` come from a run on an overloaded machine (8 parallel
+> processes, swap full). They are wall-clock and inflated, and a clean re-run is pending.
+> Raw results: `results/gurobi_60s_contended_run/`.
+
+## 6. Reproduce / validate
 
 ```bash
 python3 scripts/build_suite.py --jobs 9 --gurobi-time 120
@@ -145,6 +178,8 @@ python3 scripts/build_suite.py --jobs 9 --gurobi-time 120
 This rebuilds everything. Output is deterministic, except for the Gurobi bound on `jooken`.
 
 ```bash
-julia --project=<env with UC.jl 0.3 + Gurobi> scripts/validate.jl 60 300
+julia --project=<env with UC.jl 0.3 + Gurobi> scripts/bench_gurobi.jl 1 1 60 1   # shard 1 of 1, 60 s, 1 thread
+python3 scripts/time_certificates.py 8                                         # times the knapsack DP certificates
+python3 scripts/make_table.py                                                  # rebuilds INSTANCES.md and instances/summary.csv
 ```
-This reloads every instance with UC.jl and solves those with at most 60 generators.
+`bench_gurobi.jl` solves every instance with UC.jl + Gurobi and checks consistency with the manifest. It can be resumed and split into shards.

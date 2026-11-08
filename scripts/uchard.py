@@ -62,6 +62,10 @@ def uc_generator(mw, cost, init_status, init_power, min_up=1, min_down=1,
         "Initial status (h)": int(init_status),
         "Initial power (MW)": _num(init_power),
         "Must run?": False,
+        # Explicit, never binding: UC.jl 0.3 silently defaults these to 1e6 MW
+        # (the docs say +inf), which would cut the Jooken / large knapsack units.
+        **{k: _num(max(mw)) for k in ("Ramp up limit (MW)", "Ramp down limit (MW)",
+                                     "Startup limit (MW)", "Shutdown limit (MW)")},
     }
 
 

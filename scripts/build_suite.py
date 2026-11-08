@@ -12,6 +12,7 @@ import argparse
 import csv
 import json
 import random
+import time
 import sys
 import zlib
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -109,13 +110,17 @@ def task_kplib(ref, n, T, fam):
     base = json.loads((SRC / "orlib_10_0_1_w_load.json").read_text())
     W = sum(w for _, w in items)
     loads = [int(round(r * W)) for r in U.load_profile(base, T)]
+    t0 = time.perf_counter()
     dp = U.knapsack_dp_all_capacities(items, max(loads))
     kp = [int(dp[D]) for D in loads]
+    dp_time = time.perf_counter() - t0
     src = (f"0-1 knapsack -> UC, one knapsack per period ({REF_BIB['tseng']}). Items: "
            f"{n_items} items sampled from {cls}/{f.parent.parent.name}/{f.name} "
            f"({REF_BIB['kplib']}). Capacity D_t follows the OR-LIB daily load shape, "
            f"in [0.3, 0.7]*sum(w). Size of UC.jl benchmark {ref}.")
-    return U.knapsack_to_uc(items, loads, name, fam, src, kp, kp)
+    b = U.knapsack_to_uc(items, loads, name, fam, src, kp, kp)
+    b.meta["dp_runtime_s"] = round(dp_time, 3)
+    return b
 
 
 def solve_kp_gurobi(items, cap, time_limit):
